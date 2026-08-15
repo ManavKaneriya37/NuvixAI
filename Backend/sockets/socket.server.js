@@ -45,6 +45,14 @@ function initSocketServer(httpServer) {
 
       const vectors = await aiService.generateVector(messagePayload.content);
 
+      const memory = await queryMemory({
+        queryVector: vectors,
+        topK: 3,
+        metadata: {
+          user: socket.user._id
+        },
+      });
+
       await createMemory({
         vectors,
         messageId: message._id,
@@ -55,26 +63,37 @@ function initSocketServer(httpServer) {
         },
       });
 
-      // Select the newest messages, then restore chronological order for Gemini.
-      // Sorting oldest-first before applying `limit` kept sending only the first
-      // messages in a chat; reversing that result also made the conversation run
-      // backwards.
       const chatHistory = await messageModel
         .find({ chat })
         .sort({ createdAt: -1 })
-        .limit(20)
+        .limit(10)
         .lean();
 
       const chronologicalChatHistory = chatHistory.reverse();
 
-      const response = await aiService.generateResponse(
-        chronologicalChatHistory.map((item) => {
-          return {
-            role: item.role,
-            parts: [{ text: item.content }],
-          };
-        }),
-      );
+      const stm = chronologicalChatHistory.map((item) => {
+        return {
+          role: item.role,
+          parts: [{ text: item.content }],
+        };
+      });
+
+      const ltm = [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `
+              These are some previous messages from the chat, use them to generate a response
+
+              ${memory.map((item) => item.metadata.text).join("\n")}
+            `,
+            },
+          ],
+        },
+      ];
+
+      const response = await aiService.generateResponse([...ltm, ...stm]);
 
       const responseMessage = await messageModel.create({
         user: socket.user._id,
@@ -92,7 +111,7 @@ function initSocketServer(httpServer) {
           chat: messagePayload.chat,
           user: socket.user._id,
           text: response,
-        }, 
+        },
       });
 
       socket.emit("ai-response", {
