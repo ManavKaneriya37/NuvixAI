@@ -36,22 +36,17 @@ function initSocketServer(httpServer) {
     socket.on("ai-message", async (messagePayload) => {
       const { content, chat } = messagePayload;
 
-      const message = await messageModel.create({
-        user: socket.user._id,
-        chat,
-        content,
-        role: "user",
-      });
+      const [message, vectors] = await Promise.all([
 
-      const vectors = await aiService.generateVector(messagePayload.content);
+        messageModel.create({
+          user: socket.user._id,
+          chat,
+          content,
+          role: "user",
+        }),
 
-      const memory = await queryMemory({
-        queryVector: vectors,
-        topK: 3,
-        metadata: {
-          user: socket.user._id
-        },
-      });
+        aiService.generateVector(messagePayload.content),
+      ]);
 
       await createMemory({
         vectors,
@@ -63,13 +58,25 @@ function initSocketServer(httpServer) {
         },
       });
 
-      const chatHistory = await messageModel
-        .find({ chat })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean();
+      const [memory, chronologicalChatHistory] = await Promise.all([
+        
+        queryMemory({
+          queryVector: vectors,
+          topK: 3,
+          metadata: {
+            user: socket.user._id,
+          },
+        }),
 
-      const chronologicalChatHistory = chatHistory.reverse();
+        messageModel
+          .find({
+            chat: messagePayload.chat,
+          })
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean()
+          .then((messages) => messages.reverse()),
+      ]);
 
       const stm = chronologicalChatHistory.map((item) => {
         return {
@@ -95,6 +102,11 @@ function initSocketServer(httpServer) {
 
       const response = await aiService.generateResponse([...ltm, ...stm]);
 
+      socket.emit("ai-response", {
+        content: response,
+        chat,
+      });
+
       const responseMessage = await messageModel.create({
         user: socket.user._id,
         chat,
@@ -112,11 +124,6 @@ function initSocketServer(httpServer) {
           user: socket.user._id,
           text: response,
         },
-      });
-
-      socket.emit("ai-response", {
-        content: response,
-        chat,
       });
     });
   });
