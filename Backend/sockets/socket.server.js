@@ -4,6 +4,7 @@ const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
 const aiService = require("../services/ai.service");
 const messageModel = require("../models/message.model");
+const { createMemory, queryMemory } = require("../services/vector.service");
 
 function initSocketServer(httpServer) {
   const io = new Server(httpServer, {
@@ -35,22 +36,39 @@ function initSocketServer(httpServer) {
     socket.on("ai-message", async (messagePayload) => {
       const { content, chat } = messagePayload;
 
-      await messageModel.create({
+      const message = await messageModel.create({
         user: socket.user._id,
         chat,
         content,
         role: "user",
       });
 
+      const vectors = await aiService.generateVector(messagePayload.content);
+
+      await createMemory({
+        vectors,
+        messageId: message._id,
+        metadata: {
+          chat: messagePayload.chat,
+          user: socket.user._id,
+          text: messagePayload.content,
+        },
+      });
+
+      // Select the newest messages, then restore chronological order for Gemini.
+      // Sorting oldest-first before applying `limit` kept sending only the first
+      // messages in a chat; reversing that result also made the conversation run
+      // backwards.
       const chatHistory = await messageModel
         .find({ chat })
-        .sort({ createdAt: 1 })
-        .limit(10)
-        .lean()
-        .reverse()
-        
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+
+      const chronologicalChatHistory = chatHistory.reverse();
+
       const response = await aiService.generateResponse(
-        chatHistory.map((item) => {
+        chronologicalChatHistory.map((item) => {
           return {
             role: item.role,
             parts: [{ text: item.content }],
@@ -58,11 +76,23 @@ function initSocketServer(httpServer) {
         }),
       );
 
-      await messageModel.create({
+      const responseMessage = await messageModel.create({
         user: socket.user._id,
         chat,
         content: response,
         role: "model",
+      });
+
+      const responseVectors = await aiService.generateVector(response);
+
+      await createMemory({
+        vectors: responseVectors,
+        messageId: responseMessage._id,
+        metadata: {
+          chat: messagePayload.chat,
+          user: socket.user._id,
+          text: response,
+        }, 
       });
 
       socket.emit("ai-response", {
