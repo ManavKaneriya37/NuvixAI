@@ -1,7 +1,7 @@
-const app = require("./app");
+const app = require("./src/app");
 const port = process.env.PORT || 3000;
 
-const initSocketServer = require("./sockets/socket.server");
+const initSocketServer = require("./src/sockets/socket.server");
 const httpServer = require("http").createServer(app);
 
 initSocketServer(httpServer); 

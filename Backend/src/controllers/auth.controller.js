@@ -8,11 +8,11 @@ async function registerUser(req, res) {
     fullname: { firstname, lastname },
   } = req.body;
 
-  try { 
+  try {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "User already exists." });
     }
 
     // Hash the password
@@ -35,13 +35,16 @@ async function registerUser(req, res) {
     res.cookie("token", token, { httpOnly: true, maxAge: 3600000 }); // 1 hour
 
     res.status(201).json({
+      status: true,
       message: "User registered successfully",
       token,
       user: { email, fullname: { firstname, lastname } },
     });
   } catch (error) {
     console.error("Error registering user:", error.message);
-    res.status(500).json({ message: "Signup: Internal server error" });
+    res
+      .status(500)
+      .json({ status: false, message: "Something wrong with Signup." });
   }
 }
 
@@ -64,13 +67,16 @@ async function loginUser(req, res) {
     res.cookie("token", token, { httpOnly: true, maxAge: 3600000 }); // 1 hour
 
     res.status(200).json({
+      success: true,
       message: "Login successful",
       token,
       user: { email, fullname: user.fullname },
     });
   } catch (error) {
     console.error("Error logging in user:", error.message);
-    res.status(500).json({ message: "Login: Internal server error" });
+    res
+      .status(500)
+      .json({ success: false, message: "Something wrong with Login." });
   }
 }
 
