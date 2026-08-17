@@ -1,6 +1,28 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
 
+async function getCurrentUser(req, res) {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        fullname: user.fullname,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching current user:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch user." });
+  }
+}
+
 async function registerUser(req, res) {
   const {
     email,
@@ -32,7 +54,7 @@ async function registerUser(req, res) {
 
     // Generate JWT token
     const token = await newUser.generateAuthToken();
-    res.cookie("token", token, { httpOnly: true, maxAge: 3600000 }); // 1 hour
+    res.cookie("token", token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 }); // 7 days
 
     res.status(201).json({
       status: true,
@@ -64,7 +86,7 @@ async function loginUser(req, res) {
 
     const token = await user.generateAuthToken();
 
-    res.cookie("token", token, { httpOnly: true, maxAge: 3600000 }); // 1 hour
+    res.cookie("token", token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000  }); // 7 days
 
     res.status(200).json({
       success: true,
@@ -80,7 +102,14 @@ async function loginUser(req, res) {
   }
 }
 
+function logoutUser(req, res) {
+  res.clearCookie("token", { httpOnly: true });
+  return res.status(200).json({ success: true, message: "Logged out successfully." });
+}
+
 module.exports = {
   registerUser,
   loginUser,
+  getCurrentUser,
+  logoutUser,
 };

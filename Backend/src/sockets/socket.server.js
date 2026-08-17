@@ -4,13 +4,15 @@ const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
 const aiService = require("../services/ai.service");
 const messageModel = require("../models/message.model");
+const Chat = require("../models/chat.model");
 const { createMemory, queryMemory } = require("../services/vector.service");
 
 function initSocketServer(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: process.env.FRONTEND_URL || "http://localhost:5173",
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
@@ -36,6 +38,16 @@ function initSocketServer(httpServer) {
     socket.on("ai-message", async (messagePayload) => {
       const { content, chat } = messagePayload;
 
+      if (!content?.trim() || !chat) {
+        return socket.emit("ai-error", { chat, message: "A chat and message are required." });
+      }
+
+      const ownsChat = await Chat.exists({ _id: chat, user: socket.user._id });
+      if (!ownsChat) {
+        return socket.emit("ai-error", { chat, message: "Chat not found." });
+      }
+
+      try {
       const [message, vectors] = await Promise.all([
 
         messageModel.create({
@@ -48,12 +60,14 @@ function initSocketServer(httpServer) {
         aiService.generateVector(messagePayload.content),
       ]);
 
+      await Chat.findByIdAndUpdate(chat, { lastActivity: new Date() });
+
       await createMemory({
         vectors,
         messageId: message._id,
         metadata: {
-          chat: messagePayload.chat,
-          user: socket.user._id,
+          chat: String(messagePayload.chat),
+          user: String(socket.user._id),
           text: messagePayload.content,
         },
       });
@@ -63,8 +77,8 @@ function initSocketServer(httpServer) {
         queryMemory({
           queryVector: vectors,
           topK: 3,
-          metadata: {
-            user: socket.user._id,
+          filter: {
+            user: { $eq: String(socket.user._id) },
           },
         }),
 
@@ -120,11 +134,15 @@ function initSocketServer(httpServer) {
         vectors: responseVectors,
         messageId: responseMessage._id,
         metadata: {
-          chat: messagePayload.chat,
-          user: socket.user._id,
+          chat: String(messagePayload.chat),
+          user: String(socket.user._id),
           text: response,
         },
       });
+      } catch (error) {
+        console.error("Error processing AI message:", error.message);
+        socket.emit("ai-error", { chat, message: "Unable to process your message. Please try again." });
+      }
     });
   });
 }

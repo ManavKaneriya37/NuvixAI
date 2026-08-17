@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../../redux/slices/user.slice";
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +15,9 @@ const SignupPage = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const isSubmitting = useSelector((state) => state.user.status === "loading");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,11 +37,9 @@ const SignupPage = () => {
     setIsFormValid(isValid);
   }, [formData]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
-
-    setIsSubmitting(true);
 
     const payload = {
       email: formData.email,
@@ -48,46 +50,28 @@ const SignupPage = () => {
       },
     };
 
-    const registerPromise = axios
-      .post(
-        `${import.meta.env.VITE_SERVER_API_BASE}/api/auth/register`,
-        payload,
-      )
-      .finally(() => {
-        setIsSubmitting(false); // Always stops loading whether success or fail
-      });
+    const registerPromise = dispatch(registerUser(payload)).unwrap();
 
-    // 2. Pass the promise to Sonner
     toast.promise(registerPromise, {
       loading: "Creating your account...",
-      success: (response) => {
-        if (response.data?.success === false) {
-          throw new Error(
-            response.data?.message || "Failed to create account.",
-          );
-        }
-
+      success: () => {
+        navigate("/");
         return "Profile saved successfully.";
       },
       error: (error) => {
-        const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to create account. Please try again.";
-
-        return errorMessage;
+        return error || "Failed to create account. Please try again.";
       },
     });
   };
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#0A0A0B] text-[#EDEDED] font-sans overflow-hidden">
-      <div className="w-full max-w-md px-6 py-6 box-border">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-[#0A0A0B] text-[#EDEDED] font-sans px-4 py-8">
+      <div className="w-full max-w-md px-2 py-4 sm:px-6 sm:py-6 box-border">
         <div className="flex items-center gap-2 mb-8">
           <div className="w-9 h-9 p-1.5 bg-[#232323] rounded-lg border border-[#333333] flex items-center justify-center">
             <img
               src="/logo.png"
-              alt="NOVA AI Logo"
+              alt="Nuvix AI Logo"
               className="w-full h-full object-contain"
             />
           </div>

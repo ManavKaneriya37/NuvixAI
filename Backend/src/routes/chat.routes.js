@@ -3,6 +3,9 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const chatController = require("../controllers/chat.controller");
 
 /* /api/chat */
-router.post("/", authMiddleware.authUser, chatController.createChat);
+router.get("/", authMiddleware.authUser, chatController.getChats)
+router.post("/create", authMiddleware.authUser, chatController.createChat);
+router.get("/:chatId/messages", authMiddleware.authUser, chatController.getMessages);
+router.delete("/:chatId", authMiddleware.authUser, chatController.deleteChat);
 
 module.exports = router;

@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import SignupPage from "./pages/signup/Signup";
 import LoginPage from "./pages/login/Login";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "sonner"
+import { Toaster } from "sonner";
+import Home from "./pages/home/Home";
+import AuthWrapper from "./components/AuthWrapper";
 
 function App() {
   const [isDark, setIsDark] = useState(
@@ -31,6 +33,14 @@ function App() {
           <Routes>
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/"
+              element={
+                <AuthWrapper>
+                  <Home />
+                </AuthWrapper>
+              }
+            />
           </Routes>
         </BrowserRouter>
       </div>

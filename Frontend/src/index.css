@@ -25,3 +25,12 @@
     background-color: #0A0A0A;
   }
 }
+
+.code-highlight pre[class*="language-"],
+.code-highlight code[class*="language-"] {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}

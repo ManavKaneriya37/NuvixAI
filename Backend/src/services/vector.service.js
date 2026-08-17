@@ -22,11 +22,13 @@ async function createMemory({ vectors, messageId, metadata }) {
   });
 }
 
-async function queryMemory({ queryVector, topK = 5, metadata }) {
+async function queryMemory({ queryVector, topK = 5, filter }) {
   const data = await NuvixAI.query({
     vector: queryVector,
     topK,
-    filter: metadata ? { metadata } : undefined,
+    // Pinecone filters address metadata fields directly, e.g.
+    // { user: { $eq: "..." } }, rather than nesting them under `metadata`.
+    filter,
     includeMetadata: true,
   });
 

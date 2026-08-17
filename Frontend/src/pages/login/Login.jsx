@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../../redux/slices/user.slice";
 
 const LoginPage = () => {
   // Form state management
@@ -13,7 +14,9 @@ const LoginPage = () => {
   // UI state management
   const [showPassword, setShowPassword] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const isSubmitting = useSelector((state) => state.user.status === "loading");
 
   // Handle input changes dynamically
   const handleChange = (e) => {
@@ -34,61 +37,40 @@ const LoginPage = () => {
   }, [formData]);
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
-
-    setIsSubmitting(true);
 
     const payload = {
       email: formData.email,
       password: formData.password,
     };
 
-    // Create the Axios promise and handle the loading state cleanup in .finally()
-    const loginPromise = axios
-      .post(`${import.meta.env.VITE_SERVER_API_BASE}/api/auth/login`, payload)
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    const loginPromise = dispatch(loginUser(payload)).unwrap();
 
-    // Pass the promise to Sonner
     toast.promise(loginPromise, {
       loading: "Signing in...",
-      success: (response) => {
-        // Catch logical errors where the server returns 200 OK but login failed
-        if (response.data?.success === false) {
-          throw new Error(response.data?.message || "Failed to sign in.");
-        }
-
-        // Handle successful login here (e.g., store tokens, redirect to dashboard)
-        // localStorage.setItem('token', response.data.token);
-
+      success: () => {
+        navigate("/");
         return "Logged in successfully.";
       },
       error: (error) => {
-        // Extract the error from Axios response if available, otherwise fallback
-        const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to sign in. Please check your credentials.";
-
-        return errorMessage;
+        return error || "Failed to sign in. Please check your credentials.";
       },
     });
   };
 
   return (
     // h-screen ensures strict 100vh, overflow-hidden prevents scrolling
-    <div className="h-screen w-full flex items-center justify-center bg-[#0A0A0B] text-[#EDEDED] font-sans overflow-hidden">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-[#0A0A0B] text-[#EDEDED] font-sans px-4 py-8">
       {/* Centered Form Container */}
-      <div className="w-full max-w-md px-6 py-6 box-border">
+      <div className="w-full max-w-md px-2 py-4 sm:px-6 sm:py-6 box-border">
         {/* Logo & Brand */}
         <div className="flex items-center gap-2 mb-8">
           <div className="w-9 h-9 p-1.5 bg-[#232323] rounded-lg border border-[#333333] flex items-center justify-center">
             <img
               src="/logo.png"
-              alt="NOVA AI Logo"
+              alt="Nuvix AI Logo"
               className="w-full h-full object-contain"
             />
           </div>
