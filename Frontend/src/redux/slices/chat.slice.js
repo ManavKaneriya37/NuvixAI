@@ -109,9 +109,6 @@ const chatSlice = createSlice({
       .addCase(fetchChats.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.items = action.payload;
-        if (!state.activeChatId && action.payload.length) {
-          state.activeChatId = action.payload[0]._id;
-        }
       })
       .addCase(fetchChats.rejected, (state, action) => {
         state.status = "failed";

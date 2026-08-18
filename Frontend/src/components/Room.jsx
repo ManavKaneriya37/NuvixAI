@@ -85,13 +85,7 @@ const Room = ({
           </div>
         )}
 
-        {!isLoadingChats && !chatId && (
-          <div className="h-full flex flex-col items-center justify-center text-[#888888]">
-            <p className="text-lg mb-2">Create a chat to get started.</p>
-          </div>
-        )}
-
-        {!isLoadingChats && chatId && messages.length === 0 && (
+        {!isLoadingChats && messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-[#888888]">
             <p className="text-lg mb-2">How can I help you today?</p>
           </div>

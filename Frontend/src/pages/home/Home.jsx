@@ -123,10 +123,12 @@ const Home = () => {
   };
 
   const handleLogout = () => {
-    const promise = dispatch(logoutUser()).unwrap().then(() => {
-      getSocket().disconnect();
-      navigate("/login", { replace: true });
-    });
+    const promise = dispatch(logoutUser())
+      .unwrap()
+      .then(() => {
+        getSocket().disconnect();
+        navigate("/login", { replace: true });
+      });
     toast.promise(promise, {
       loading: "Logging out...",
       success: "Logged out successfully.",
@@ -137,7 +139,13 @@ const Home = () => {
 
   return (
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#212121] font-sans text-[#EDEDED]">
-      {isSidebarOpen && <button onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 z-30 bg-black/55 md:hidden" aria-label="Close chats" />}
+      {isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/55 md:hidden"
+          aria-label="Close chats"
+        />
+      )}
       <Sidebar
         chats={items}
         activeChatId={activeChatId}
@@ -154,14 +162,72 @@ const Home = () => {
         onLogout={handleLogout}
         isLoggingOut={logoutStatus === "loading"}
       />
-      <ChatRoom
-        chatId={activeChatId}
-        messages={messagesByChatId[activeChatId] || []}
-        isTyping={typingByChatId[activeChatId]}
-        isLoadingChats={status === "loading"}
-        onSendMessage={handleSendMessage}
-        onOpenSidebar={() => setIsSidebarOpen(true)}
-      />
+
+      {/* Show chat room only if a chat is selected */}
+      {activeChatId ? (
+        <ChatRoom
+          chatId={activeChatId}
+          messages={messagesByChatId[activeChatId] || []}
+          isTyping={typingByChatId[activeChatId]}
+          isLoadingChats={status === "loading"}
+          onSendMessage={handleSendMessage}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
+        />
+      ) : (
+        /* Empty state when no chat is selected */
+        <main className="min-w-0 flex-1 flex flex-col h-full bg-gradient-to-b from-[#212121] to-[#1a1a1a]">
+          {/* Header with Mobile Menu Button */}
+          <div className="h-14 flex flex-shrink-0 items-center px-3 sm:px-4 border-b border-[#2B2B2B]/50">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="rounded p-1 text-[#888888] hover:bg-white/5 hover:text-white transition-colors md:hidden"
+              aria-label="Open chats"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <path d="M9 3v18" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 flex items-center justify-center px-4">
+            <div className="max-w-2xl w-full text-center space-y-8">
+              {/* Icon Section */}
+              <div className="flex justify-center">
+                <div className="w-24 h-24 bg-gradient-to-br from-[#333333] to-[#1f1f1f] rounded-3xl border-2 border-[#444444] flex items-center justify-center shadow-2xl">
+                  <img src="/logo.png" alt="Nuvix AI" className="w-12 h-12" />
+                </div>
+              </div>
+
+              {/* Main Content */}
+              <div className="space-y-3">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-white to-[#00d4ff] bg-clip-text text-transparent">
+                  Welcome to Nuvix AI
+                </h1>
+                <p className="text-sm text-[#999999] leading-relaxed">
+                  Create a new chat to start fresh or continue with created ones
+                  from your history.
+                </p>
+              </div>
+
+              {/* Hint Text */}
+              {items.length === 0 && (
+                <p className="text-xs text-[#666666] pt-2">
+                  No chats yet. Create your first chat to begin!
+                </p>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
     </div>
   );
 };

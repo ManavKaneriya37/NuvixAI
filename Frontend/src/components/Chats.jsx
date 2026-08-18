@@ -76,7 +76,9 @@ const Chats = ({
       .join("") || "U";
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 flex h-[100dvh] w-[min(82vw,280px)] flex-col border-r border-[#2B2B2B] bg-[#171717] shadow-2xl transition-transform duration-200 md:static md:h-full md:w-[280px] md:translate-x-0 md:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
+    <aside
+      className={`fixed inset-y-0 left-0 z-40 flex h-[100dvh] w-[min(82vw,280px)] flex-col border-r border-[#2B2B2B] bg-[#171717] shadow-2xl transition-transform duration-200 md:static md:h-full md:w-[280px] md:translate-x-0 md:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+    >
       <div className="p-4 flex items-center gap-2">
         <div className="w-8 h-8 bg-[#232323] rounded-lg border border-[#333333] flex items-center justify-center p-1.5">
           <img
@@ -86,13 +88,27 @@ const Chats = ({
           />
         </div>
         <span className="font-semibold tracking-wide text-sm">Nuvix AI</span>
-        <button onClick={onClose} className="ml-auto rounded p-1 text-[#888888] hover:text-white md:hidden" aria-label="Close chats">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 6-12 12M6 6l12 12" /></svg>
+        <button
+          onClick={onClose}
+          className="ml-auto rounded p-1 text-[#888888] hover:text-white md:hidden"
+          aria-label="Close chats"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m18 6-12 12M6 6l12 12" />
+          </svg>
         </button>
       </div>
 
       <div className="px-3 pb-3 flex gap-2">
         <button
+          data-action="create-chat"
           onClick={() => setShowModal(true)}
           className="flex-1 flex items-center gap-2 px-3 py-2 bg-[#212121] hover:bg-[#2B2B2B] border border-[#333333] rounded-lg text-sm font-medium transition-colors"
         >
@@ -152,18 +168,6 @@ const Chats = ({
             className={`group flex items-center rounded-lg transition-colors ${activeChatId === chat._id ? "bg-[#2B2B2B]" : "hover:bg-[#232323]"}`}
           >
             <button
-              onClick={() => openRenameDialog(chat)}
-              disabled={renamingChatId === chat._id}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] opacity-0 transition hover:bg-[#3A3A3A] hover:text-white disabled:cursor-not-allowed group-hover:opacity-100 focus:opacity-100"
-              aria-label={`Rename ${chat.title}`}
-              title="Rename chat"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-            </button>
-            <button
               onClick={() => {
                 onSelectChat(chat._id);
                 onClose?.();
@@ -171,6 +175,25 @@ const Chats = ({
               className={`min-w-0 flex-1 truncate px-3 py-2 text-left text-sm ${activeChatId === chat._id ? "text-white" : "text-[#D1D1D1]"}`}
             >
               {chat.title}
+            </button>
+            <button
+              onClick={() => openRenameDialog(chat)}
+              disabled={renamingChatId === chat._id}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] opacity-0 transition hover:bg-[#3A3A3A] hover:text-white disabled:cursor-not-allowed group-hover:opacity-100 focus:opacity-100"
+              aria-label={`Rename ${chat.title}`}
+              title="Rename chat"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
             </button>
             <button
               onClick={() => handleDeleteChat(chat)}
@@ -210,8 +233,27 @@ const Chats = ({
         <div className="flex-1 truncate">
           <p className="text-sm font-medium truncate">{userName}</p>
         </div>
-        <button onClick={onLogout} disabled={isLoggingOut} className="rounded-md p-2 text-[#888888] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed" aria-label="Log out" title="Log out">
-          {isLoggingOut ? "..." : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-6" /></svg>}
+        <button
+          onClick={onLogout}
+          disabled={isLoggingOut}
+          className="rounded-md p-2 text-[#888888] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed"
+          aria-label="Log out"
+          title="Log out"
+        >
+          {isLoggingOut ? (
+            "..."
+          ) : (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-6" />
+            </svg>
+          )}
         </button>
       </div>
 
@@ -261,7 +303,9 @@ const Chats = ({
       {chatToRename && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-[90%] max-w-md rounded-2xl border border-[#2B2B2B] bg-[#171717] p-5 shadow-2xl">
-            <h3 className="mb-3 text-lg font-semibold text-white">Rename chat</h3>
+            <h3 className="mb-3 text-lg font-semibold text-white">
+              Rename chat
+            </h3>
             <input
               type="text"
               value={draftTitle}
@@ -275,8 +319,18 @@ const Chats = ({
               }}
             />
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={closeRenameDialog} disabled={Boolean(renamingChatId)} className="rounded-lg border border-[#333333] bg-transparent px-3 py-2 text-sm text-gray-300 hover:bg-[#232323] disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
-              <button onClick={handleRenameChat} disabled={!draftTitle.trim() || Boolean(renamingChatId)} className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50">
+              <button
+                onClick={closeRenameDialog}
+                disabled={Boolean(renamingChatId)}
+                className="rounded-lg border border-[#333333] bg-transparent px-3 py-2 text-sm text-gray-300 hover:bg-[#232323] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenameChat}
+                disabled={!draftTitle.trim() || Boolean(renamingChatId)}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 {renamingChatId ? "Saving..." : "Save"}
               </button>
             </div>
