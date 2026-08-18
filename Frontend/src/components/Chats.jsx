@@ -179,7 +179,15 @@ const Chats = ({
             <button
               onClick={() => openRenameDialog(chat)}
               disabled={renamingChatId === chat._id}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] opacity-0 transition hover:bg-[#3A3A3A] hover:text-white disabled:cursor-not-allowed group-hover:opacity-100 focus:opacity-100"
+              className={`h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] transition
+  hover:bg-[#3A3A3A] hover:text-white
+  disabled:cursor-not-allowed
+  ${
+    activeChatId === chat._id
+      ? "flex sm:hidden sm:group-hover:flex"
+      : "hidden sm:group-hover:flex"
+  }
+`}
               aria-label={`Rename ${chat.title}`}
               title="Rename chat"
             >
@@ -198,7 +206,15 @@ const Chats = ({
             <button
               onClick={() => handleDeleteChat(chat)}
               disabled={deletingChatId === chat._id}
-              className="mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] opacity-0 transition hover:bg-[#3A3A3A] hover:text-red-400 disabled:cursor-not-allowed group-hover:opacity-100 focus:opacity-100"
+              className={`mr-1 h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] transition
+  hover:bg-[#3A3A3A] hover:text-red-400
+  disabled:cursor-not-allowed
+  ${
+    activeChatId === chat._id
+      ? "flex sm:hidden sm:group-hover:flex"
+      : "hidden sm:group-hover:flex"
+  }
+`}
               aria-label={`Delete ${chat.title}`}
               title="Delete chat"
             >

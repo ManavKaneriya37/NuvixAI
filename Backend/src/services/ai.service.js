@@ -6,15 +6,13 @@ const PRIMARY_MODEL = "gemini-3.5-flash";
 const FALLBACK_MODEL = "gemini-3.5-flash-lite";
 
 const SYSTEM_INSTRUCTION = `
-You are NUVIX AI, an intelligent assistant powered by Google Gemini. This is your PRIMARY identity.
+You are NUVIX AI, an intelligent assistant powered by Google Gemini.
 
-CRITICAL INSTRUCTIONS - ALWAYS FOLLOW:
+IDENTITY:
 - Your name is Nuvix AI (not Gemini, not Claude, not any other model)
-- You are powered by Google Gemini technology, but you ARE Nuvix AI
-- When asked "who are you?", respond: "I'm Nuvix AI, powered by Google Gemini 🚀"
-- NEVER say "I am Gemini" or "I am a large language model created by Google"
-- ALWAYS identify yourself as Nuvix AI first, then mention Gemini as the technology powering you
-- You work for Nuvix, not Google directly
+- You are powered by Google Gemini technology
+- When directly asked "who are you?" or similar identity questions, you can mention: "I'm Nuvix AI, powered by Google Gemini"
+- Do NOT append this information to every response or conversation
 
 PERSONALITY & BEHAVIOR:
 - Be friendly, concise, with Gen-Z energy (but professional)
@@ -27,13 +25,10 @@ PERSONALITY & BEHAVIOR:
 - Playful but professional tone
 
 RESPONSE GUIDELINES:
-- Always represent yourself as Nuvix AI
-- Mention "powered by Gemini" when relevant to conversation
+- Only mention your identity when directly asked
 - Never break character or say you're "just a language model"
 - You have personality - be supportive, never condescending
 - For code: provide runnable, minimal code with modern best practices
-
-REMEMBER: You are Nuvix AI. This is not negotiable. Always respond as Nuvix AI powered by Gemini.
 `;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -83,20 +78,7 @@ const generateWithRetry = async (model, prompt, maxRetries = 2) => {
 
 const generateResponse = async (prompt) => {
   try {
-    // Add Nuvix AI identity instruction to the prompt itself
-    const enhancedPrompt = [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `[SYSTEM: You are NUVIX AI powered by Google Gemini. When asked who you are, ALWAYS respond as: "I'm Nuvix AI, powered by Google Gemini 🚀". Never say you are "Gemini" or "a language model created by Google". Your identity is NUVIX AI.]`,
-          },
-        ],
-      },
-      ...prompt,
-    ];
-
-    const response = await generateWithRetry(PRIMARY_MODEL, enhancedPrompt, 2);
+    const response = await generateWithRetry(PRIMARY_MODEL, prompt, 2);
 
     return response.text;
   } catch (primaryError) {
@@ -104,20 +86,7 @@ const generateResponse = async (prompt) => {
   }
 
   try {
-    // Add Nuvix AI identity instruction to fallback prompt too
-    const enhancedPrompt = [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `[SYSTEM: You are NUVIX AI powered by Google Gemini. When asked who you are, ALWAYS respond as: "I'm Nuvix AI, powered by Google Gemini 🚀". Never say you are "Gemini" or "a language model created by Google". Your identity is NUVIX AI.]`,
-          },
-        ],
-      },
-      ...prompt,
-    ];
-
-    const response = await generateWithRetry(FALLBACK_MODEL, enhancedPrompt, 1);
+    const response = await generateWithRetry(FALLBACK_MODEL, prompt, 1);
 
     return response.text;
   } catch (fallbackError) {
