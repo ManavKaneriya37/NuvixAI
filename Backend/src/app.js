@@ -4,6 +4,7 @@ const dotenv = require("dotenv").config();
 const connectDB = require("./db/db");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const path = require("path");
 
 //import routes
 const authRouter = require("./routes/auth.routes");
@@ -18,6 +19,7 @@ app.use(
     credentials: true,
   }),
 );
+app.use(express.static(path.join(__dirname, "../public")));
 
 //MongoDB connection
 connectDB();
@@ -25,5 +27,9 @@ connectDB();
 //Routes
 app.use("/api/auth", authRouter);
 app.use("/api/chat", chatRouter);
+
+app.get("*name", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/index.html"));
+});
 
 module.exports = app;
