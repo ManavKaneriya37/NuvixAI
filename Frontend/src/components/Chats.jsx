@@ -5,8 +5,10 @@ const Chats = ({
   activeChatId,
   onSelectChat,
   onNewChat,
+  onRenameChat,
   onDeleteChat,
   isCreating,
+  renamingChatId,
   deletingChatId,
   userName = "User",
   isOpen,
@@ -16,6 +18,7 @@ const Chats = ({
 }) => {
   const [draftTitle, setDraftTitle] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [chatToRename, setChatToRename] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -40,6 +43,28 @@ const Chats = ({
   const handleDeleteChat = (chat) => {
     if (window.confirm(`Delete “${chat.title}”? This cannot be undone.`))
       onDeleteChat(chat._id).catch(() => undefined);
+  };
+
+  const handleRenameChat = () => {
+    const title = draftTitle.trim();
+    if (!title || !chatToRename) return;
+    onRenameChat(chatToRename._id, title)
+      .then(() => {
+        setChatToRename(null);
+        setDraftTitle("");
+      })
+      .catch(() => undefined);
+  };
+
+  const openRenameDialog = (chat) => {
+    setChatToRename(chat);
+    setDraftTitle(chat.title);
+  };
+
+  const closeRenameDialog = () => {
+    if (renamingChatId) return;
+    setChatToRename(null);
+    setDraftTitle("");
   };
 
   const initials =
@@ -126,6 +151,18 @@ const Chats = ({
             key={chat._id}
             className={`group flex items-center rounded-lg transition-colors ${activeChatId === chat._id ? "bg-[#2B2B2B]" : "hover:bg-[#232323]"}`}
           >
+            <button
+              onClick={() => openRenameDialog(chat)}
+              disabled={renamingChatId === chat._id}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-[#888888] opacity-0 transition hover:bg-[#3A3A3A] hover:text-white disabled:cursor-not-allowed group-hover:opacity-100 focus:opacity-100"
+              aria-label={`Rename ${chat.title}`}
+              title="Rename chat"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
             <button
               onClick={() => {
                 onSelectChat(chat._id);
@@ -215,6 +252,32 @@ const Chats = ({
                 className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isCreating ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chatToRename && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-[90%] max-w-md rounded-2xl border border-[#2B2B2B] bg-[#171717] p-5 shadow-2xl">
+            <h3 className="mb-3 text-lg font-semibold text-white">Rename chat</h3>
+            <input
+              type="text"
+              value={draftTitle}
+              onChange={(event) => setDraftTitle(event.target.value)}
+              placeholder="Enter chat name"
+              className="w-full rounded-lg border border-[#333333] bg-[#121212] px-3 py-2.5 text-sm text-white outline-none focus:border-white"
+              autoFocus
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleRenameChat();
+                if (event.key === "Escape") closeRenameDialog();
+              }}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={closeRenameDialog} disabled={Boolean(renamingChatId)} className="rounded-lg border border-[#333333] bg-transparent px-3 py-2 text-sm text-gray-300 hover:bg-[#232323] disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
+              <button onClick={handleRenameChat} disabled={!draftTitle.trim() || Boolean(renamingChatId)} className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50">
+                {renamingChatId ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

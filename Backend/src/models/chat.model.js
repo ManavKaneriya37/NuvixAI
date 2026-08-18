@@ -4,7 +4,8 @@ const chatSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true,
     },
     title: {
         type: String,
@@ -16,6 +17,9 @@ const chatSchema = new mongoose.Schema({
     }
 
 }, {timestamps: true});
+
+// Compound index for optimized chat retrieval sorted by lastActivity
+chatSchema.index({ user: 1, lastActivity: -1 });
 
 const chatModel = mongoose.model('Chat', chatSchema);
 

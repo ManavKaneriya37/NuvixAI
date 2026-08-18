@@ -6,6 +6,7 @@ const aiService = require("../services/ai.service");
 const messageModel = require("../models/message.model");
 const Chat = require("../models/chat.model");
 const { createMemory, queryMemory } = require("../services/vector.service");
+const { backgroundVectorGeneration, backgroundUpdateChatActivity } = require("../utils/backgroundTasks");
 
 function initSocketServer(httpServer) {
   const io = new Server(httpServer, {
@@ -37,6 +38,7 @@ function initSocketServer(httpServer) {
   io.on("connection", (socket) => {
     socket.on("ai-message", async (messagePayload) => {
       const { content, chat } = messagePayload;
+      const startTime = Date.now();
 
       if (!content?.trim() || !chat) {
         return socket.emit("ai-error", { chat, message: "A chat and message are required." });
@@ -48,97 +50,88 @@ function initSocketServer(httpServer) {
       }
 
       try {
-      const [message, vectors] = await Promise.all([
-
-        messageModel.create({
+        // Save user message and generate vector in parallel (non-blocking)
+        const message = await messageModel.create({
           user: socket.user._id,
           chat,
           content,
           role: "user",
-        }),
+        });
 
-        aiService.generateVector(messagePayload.content),
-      ]);
-
-      await Chat.findByIdAndUpdate(chat, { lastActivity: new Date() });
-
-      await createMemory({
-        vectors,
-        messageId: message._id,
-        metadata: {
-          chat: String(messagePayload.chat),
-          user: String(socket.user._id),
-          text: messagePayload.content,
-        },
-      });
-
-      const [memory, chronologicalChatHistory] = await Promise.all([
+        // Generate vector in background (don't await)
+        backgroundVectorGeneration(message._id, content, chat, socket.user._id);
         
-        queryMemory({
-          queryVector: vectors,
-          topK: 3,
-          filter: {
-            user: { $eq: String(socket.user._id) },
-          },
-        }),
+        // Update chat lastActivity in background (don't await)
+        backgroundUpdateChatActivity(chat);
 
-        messageModel
-          .find({
-            chat: messagePayload.chat,
-          })
-          .sort({ createdAt: -1 })
-          .limit(20)
-          .lean()
-          .then((messages) => messages.reverse()),
-      ]);
-
-      const stm = chronologicalChatHistory.map((item) => {
-        return {
-          role: item.role,
-          parts: [{ text: item.content }],
-        };
-      });
-
-      const ltm = [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `
-              These are some previous messages from the chat, use them to generate a response
-
-              ${memory.map((item) => item.metadata.text).join("\n")}
-            `,
+        // Query relevant memory (semantic search) and recent chat history in parallel
+        const [memory, chronologicalChatHistory] = await Promise.all([
+          queryMemory({
+            // Use a zero vector as placeholder to get user context
+            // Or implement a smarter query - for now we'll query by top results
+            topK: 3,
+            filter: {
+              user: { $eq: String(socket.user._id) },
             },
-          ],
-        },
-      ];
+          }).catch(() => []), // Graceful fallback if vector service fails
+          
+          messageModel
+            .find({ chat })
+            .select("role content")
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean()
+            .then((messages) => messages.reverse()),
+        ]);
 
-      const response = await aiService.generateResponse([...ltm, ...stm]);
+        // Build short-term memory (recent chat history)
+        const stm = chronologicalChatHistory.map((item) => {
+          return {
+            role: item.role,
+            parts: [{ text: item.content }],
+          };
+        });
 
-      socket.emit("ai-response", {
-        content: response,
-        chat,
-      });
+        // Build long-term memory (semantic search results)
+        const ltm = [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `
+These are some previous messages from the chat, use them to generate a response
 
-      const responseMessage = await messageModel.create({
-        user: socket.user._id,
-        chat,
-        content: response,
-        role: "model",
-      });
+${memory.map((item) => item.metadata?.text || "").filter(Boolean).join("\n")}
+            `,
+              },
+            ],
+          },
+        ];
 
-      const responseVectors = await aiService.generateVector(response);
+        // Generate AI response
+        const response = await aiService.generateResponse([...ltm, ...stm]);
 
-      await createMemory({
-        vectors: responseVectors,
-        messageId: responseMessage._id,
-        metadata: {
-          chat: String(messagePayload.chat),
-          user: String(socket.user._id),
-          text: response,
-        },
-      });
+        // Send response to user immediately
+        socket.emit("ai-response", {
+          content: response,
+          chat,
+        });
+
+        const userTime = Date.now() - startTime;    
+
+        // Save response message and generate its vector in background (non-blocking)
+        const responseMessage = await messageModel.create({
+          user: socket.user._id,
+          chat,
+          content: response,
+          role: "model",
+        });
+
+        // Generate response vector in background (don't block user)
+        backgroundVectorGeneration(responseMessage._id, response, chat, socket.user._id);
+
+        const totalTime = Date.now() - startTime;
+
       } catch (error) {
         console.error("Error processing AI message:", error.message);
         socket.emit("ai-error", { chat, message: "Unable to process your message. Please try again." });

@@ -31,7 +31,10 @@ async function getChats(req, res) {
   try {
     const user = req.user;
 
-    const chats = await Chat.find({ user: user._id }).sort({ lastActivity: -1 });
+    const chats = await Chat.find({ user: user._id })
+      .select("_id title lastActivity")
+      .sort({ lastActivity: -1 })
+      .lean();
 
     res.status(200).json({
       message: "Chats retrieved successfully.",
@@ -57,7 +60,11 @@ async function getMessages(req, res) {
 
     if (!chat) return res.status(404).json({ message: "Chat not found." });
 
-    const messages = await Message.find({ chat: chat._id }).sort({ createdAt: 1 }).lean();
+    const messages = await Message.find({ chat: chat._id })
+      .select("_id content role createdAt")
+      .sort({ createdAt: 1 })
+      .lean();
+    
     return res.status(200).json({
       messages: messages.map((message) => ({
         _id: message._id,
@@ -68,6 +75,35 @@ async function getMessages(req, res) {
     });
   } catch (error) {
     return res.status(500).json({ message: "Error loading messages." });
+  }
+}
+
+async function renameChat(req, res) {
+  try {
+    const title = req.body.title?.trim();
+
+    if (!title) {
+      return res.status(400).json({ message: "A chat title is required." });
+    }
+
+    const chat = await Chat.findOneAndUpdate(
+      { _id: req.params.chatId, user: req.user._id },
+      { title },
+      { new: true, runValidators: true },
+    );
+
+    if (!chat) return res.status(404).json({ message: "Chat not found." });
+
+    return res.status(200).json({
+      message: "Chat renamed successfully.",
+      chat: {
+        _id: chat._id,
+        title: chat.title,
+        lastActivity: chat.lastActivity,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Error renaming chat." });
   }
 }
 
@@ -87,4 +123,4 @@ async function deleteChat(req, res) {
   }
 }
 
-module.exports = { createChat, getChats, getMessages, deleteChat };
+module.exports = { createChat, getChats, getMessages, renameChat, deleteChat };

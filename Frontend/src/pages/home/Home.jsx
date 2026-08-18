@@ -10,6 +10,7 @@ import {
   deleteChat,
   fetchChats,
   fetchMessages,
+  renameChat,
   setActiveChat,
   setChatTyping,
 } from "../../redux/slices/chat.slice";
@@ -27,6 +28,7 @@ const Home = () => {
     typingByChatId,
     status,
     createStatus,
+    renamingChatId,
     deletingChatId,
   } = useSelector((state) => state.chat);
   const { user, logoutStatus } = useSelector((state) => state.user);
@@ -110,6 +112,16 @@ const Home = () => {
     return promise;
   };
 
+  const handleRenameChat = (chatId, title) => {
+    const promise = dispatch(renameChat({ chatId, title })).unwrap();
+    toast.promise(promise, {
+      loading: "Renaming chat...",
+      success: "Chat renamed.",
+      error: (error) => error || "Unable to rename chat.",
+    });
+    return promise;
+  };
+
   const handleLogout = () => {
     const promise = dispatch(logoutUser()).unwrap().then(() => {
       getSocket().disconnect();
@@ -131,8 +143,10 @@ const Home = () => {
         activeChatId={activeChatId}
         onSelectChat={(chatId) => dispatch(setActiveChat(chatId))}
         onNewChat={handleNewChat}
+        onRenameChat={handleRenameChat}
         onDeleteChat={handleDeleteChat}
         isCreating={createStatus === "loading"}
+        renamingChatId={renamingChatId}
         deletingChatId={deletingChatId}
         userName={userName}
         isOpen={isSidebarOpen}

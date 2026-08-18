@@ -8,6 +8,7 @@ const initialState = {
   typingByChatId: {},
   status: "idle",
   createStatus: "idle",
+  renamingChatId: null,
   deletingChatId: null,
   messagesStatus: "idle",
   error: null,
@@ -50,6 +51,20 @@ export const deleteChat = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Unable to delete chat.",
+      );
+    }
+  },
+);
+
+export const renameChat = createAsyncThunk(
+  "chat/renameChat",
+  async ({ chatId, title }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.patch(`/chat/${chatId}`, { title });
+      return data.chat;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Unable to rename chat.",
       );
     }
   },
@@ -113,6 +128,20 @@ const chatSlice = createSlice({
       })
       .addCase(createChat.rejected, (state, action) => {
         state.createStatus = "failed";
+        state.error = action.payload;
+      })
+      .addCase(renameChat.pending, (state, action) => {
+        state.renamingChatId = action.meta.arg.chatId;
+      })
+      .addCase(renameChat.fulfilled, (state, action) => {
+        const index = state.items.findIndex(
+          (chat) => chat._id === action.payload._id,
+        );
+        if (index !== -1) state.items[index] = action.payload;
+        state.renamingChatId = null;
+      })
+      .addCase(renameChat.rejected, (state, action) => {
+        state.renamingChatId = null;
         state.error = action.payload;
       })
       .addCase(deleteChat.pending, (state, action) => {
